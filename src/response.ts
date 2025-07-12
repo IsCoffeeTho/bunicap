@@ -20,8 +20,8 @@ export enum geminiStatus {
 	Gone = 52,
 	ProxyRequestRefused = 53,
 	BadRequest = 59,
-	
-	
+
+
 	RequestCertificate = 60,
 	CertificateNotAuthorized = 61,
 	CertificateInvalid = 62,
@@ -56,11 +56,24 @@ export class geminiResponse {
 	 * Sets the status code of the response
 	*/
 	status(code: geminiStatus) {
-
+		const lowerLimit = 10;
+		const upperLimit = 69;
+		if (!(lowerLimit <= this.#status && this.#status <= upperLimit))
+			throw new Error(`Gemini Status Codes must be within ${lowerLimit}-${upperLimit}`);
+		this.#status = code;
 		return this;
 	}
 
 	type(MIMEType: string) {
+		switch (MIMEType) {
+			case "gemtext":
+			case "gemini":
+			case "gmi":
+				MIMEType = "text/gemini";
+				break;
+				
+			default: MIMEType = "text/plain"; break;
+		}
 		this.#type = MIMEType;
 		return this;
 	}
@@ -68,35 +81,36 @@ export class geminiResponse {
 	redirect(uri: string) {
 		if (!(30 <= this.#status && this.#status < 40))
 			this.#status = 30;
+		this.#req.sent = true;
+		var uris = 
 		this.#socket.write(`${this.#status} ${uri}\r\n`);
 		this.#socket.close();
-		this.#req.sent = true;
 	}
 
-	send(data: string | Buffer) {
+	async send(data: string | Buffer) {
 		if (this.#req.sent)
 			return;
+		this.#req.sent = true;
 		if (20 <= this.#status && this.#status < 30) {
-			this.#socket.write(`${this.#status} ${this.#type}\r\n${data.toString()}`);
+			this.#socket.write(`${this.#status} ${this.#type}\r\n`);
+			this.#socket.write(data);
 		} else {
-			this.#socket.write(`${this.#status} ${data.toString()}\r\n`);
+			this.#socket.write(`${this.#status} \r\n`);
 		}
 		this.#socket.close();
-		this.#req.sent = true;
 	}
 
 	async sendFile(filename: string, errCallback?: (err: Error) => {}) {
 		if (!(20 <= this.#status && this.#status < 30))
 			throw new Error("Cannot send file when status of response is not 20-29.");
 		var file = Bun.file(filename);
-		
+
 		if (!(await file.exists())) {
 			var err = new Error("File does not exist")
 			if (!errCallback) throw err;
 			errCallback(err);
 			return;
 		}
-			
 		this.#req.sent = true;
 		this.#socket.write(`${this.#status} ${this.#type}\r\n${await file.text()}`);
 		this.#socket.close();
