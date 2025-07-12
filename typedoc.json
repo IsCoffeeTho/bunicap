@@ -1,0 +1,32 @@
+{
+	"plugin": [
+		"typedoc-plugin-markdown",
+		"typedoc-github-wiki-theme",
+		"typedoc-plugin-merge-modules",
+		"typedoc-plugin-rename-defaults"
+	],
+	"out": "./wiki",
+	"entryPoints": [
+		"./index.ts",
+		"./src/*.ts",
+	],
+	"projectDocuments": [
+		"docs/**/*.md"
+	],
+	"excludeInternal": true,
+	"entryPointStrategy": "expand",
+	// "hidePageHeader": false,
+	// "flattenOutputFiles": true,
+	"mergeModulesRenameDefaults": true,
+	"mergeModulesMergeMode": "project",
+	// "propertyMembersFormat": "table",
+	// "enumMembersFormat": "table",
+	// "useCodeBlocks": true,
+	// "tableColumnSettings": {
+	// 	"hideDefaults": false,
+	// },
+	"sort": [
+		"kind",
+		"instance-first"
+	]
+}

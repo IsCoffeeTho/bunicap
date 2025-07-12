@@ -1,5 +1,6 @@
 import type { Socket } from "bun";
 import type { geminiRequest } from "./request";
+import { MIMETypeFromExtension } from "./MIMETypes";
 
 export enum geminiStatus {
 	InputRequired = 10,
@@ -48,7 +49,7 @@ export class geminiResponse {
 	 * [Gemini Protocol standard Status 60](https://geminiprotocol.net/docs/protocol-specification.gmi#status-60)
 	*/
 	requireCertificate() {
-		this.#socket.write(`60\r\n`);
+		this.#socket.write(`60 \r\n`);
 		/** @TODO Implement certificate requests */
 	}
 
@@ -65,24 +66,15 @@ export class geminiResponse {
 	}
 
 	type(MIMEType: string) {
-		switch (MIMEType) {
-			case "gemtext":
-			case "gemini":
-			case "gmi":
-				MIMEType = "text/gemini";
-				break;
-				
-			default: MIMEType = "text/plain"; break;
-		}
+
 		this.#type = MIMEType;
 		return this;
 	}
 
-	redirect(uri: string) {
+	async redirect(uri: string) {
 		if (!(30 <= this.#status && this.#status < 40))
 			this.#status = 30;
 		this.#req.sent = true;
-		var uris = 
 		this.#socket.write(`${this.#status} ${uri}\r\n`);
 		this.#socket.close();
 	}
@@ -103,16 +95,22 @@ export class geminiResponse {
 	async sendFile(filename: string, errCallback?: (err: Error) => {}) {
 		if (!(20 <= this.#status && this.#status < 30))
 			throw new Error("Cannot send file when status of response is not 20-29.");
-		var file = Bun.file(filename);
 
-		if (!(await file.exists())) {
-			var err = new Error("File does not exist")
+		try {
+			var file = Bun.file(filename);
+
+			if (!(await file.exists()))
+				throw new Error("File does not exist");
+			this.#type = MIMETypeFromExtension(filename);
+
+			this.#req.sent = true;
+			this.#socket.write(`${this.#status} ${this.#type}\r\n${await file.text()}`);
+			this.#socket.close();
+			
+		} catch (err: any) {
 			if (!errCallback) throw err;
 			errCallback(err);
 			return;
 		}
-		this.#req.sent = true;
-		this.#socket.write(`${this.#status} ${this.#type}\r\n${await file.text()}`);
-		this.#socket.close();
 	}
 }

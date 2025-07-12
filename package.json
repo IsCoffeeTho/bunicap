@@ -1,5 +1,6 @@
 {
 	"name": "bunicap",
+	"version": "0.0.1",
 	"module": "index.ts",
 	"type": "module",
 	"private": true,
@@ -8,9 +9,16 @@
 		"encrypt": "openssl req -x509 -out localhost.crt -keyout localhost.key -newkey rsa:2048 -nodes -sha256 -subj '/CN=localhost' -extensions EXT -config <( printf \"[dn]\nCN=localhost\n[req]\ndistinguished_name = dn\n[EXT]\nsubjectAltName=DNS:localhost\nkeyUsage=digitalSignature\nextendedKeyUsage=serverAuth\")"
 	},
 	"devDependencies": {
-		"@types/bun": "latest"
+		"bun-types": "latest",
+		"@types/bun": "latest",
+		"typedoc": "latest",
+		"typedoc-github-wiki-theme": "latest",
+		"typedoc-plugin-markdown": "latest",
+		"typedoc-plugin-merge-modules": "latest",
+		"typedoc-plugin-rename-defaults": "latest"
 	},
 	"peerDependencies": {
-		"typescript": "^5"
+		"typescript": "latest",
+		"typedoc": "latest"
 	}
 }
