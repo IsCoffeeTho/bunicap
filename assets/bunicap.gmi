@@ -1,0 +1,5 @@
+# Bunicap
+
+Bunicap is a bun module that allows the easy development of gemini capsules
+
+=> https://github.com/IsCoffeeTho/bunicap Source: Github
