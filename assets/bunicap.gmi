@@ -4,7 +4,7 @@
 => https://www.npmjs.com/package/bunicap npm
 => https://github.com/IsCoffeeTho/bunicap/wiki wiki
 
-Bunicap  is a bun module that allows the easy development of gemini capsules
+Bunicap is a bun module that allows the easy development of gemini capsules
 
 => gemini://geminiprotocol.net/docs/protocol-specification.gmi Gemini Protocol
 => gemini://geminiprotocol.net/docs/gemtext-specification.gmi GemText Specification

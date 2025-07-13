@@ -140,7 +140,7 @@ export default class bunicap {
 
 							if (req.split('\r\n').length > 2) { // assumed HTTPS
 								socket.write([
-									'HTTP/1 400 gemini protocol required',
+									'HTTP/1.1 400 gemini protocol required',
 									'400 gemini protocol required'
 								].join("\r\n\r\n"));
 								socket.close();
