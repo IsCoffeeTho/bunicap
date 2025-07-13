@@ -22,7 +22,6 @@ export enum geminiStatus {
 	ProxyRequestRefused = 53,
 	BadRequest = 59,
 
-
 	RequestCertificate = 60,
 	CertificateNotAuthorized = 61,
 	CertificateInvalid = 62,
@@ -43,7 +42,7 @@ export class geminiResponse {
 	/**
 	 * Tells the client to require a certificate in the next request
 	 * 
-	 * [Gemini Protocol standard Status 60](https://geminiprotocol.net/docs/protocol-specification.gmi#status-60)
+	 * @see {@link https://geminiprotocol.net/docs/protocol-specification.gmi#status-60}
 	*/
 	requireCertificate() {
 		this.#socket.data.sent = true;
@@ -57,6 +56,8 @@ export class geminiResponse {
 	 * 
 	 * if true is provided in the arguments, it asks the user for a password
 	 * or a hidden text input for sensitive data
+	 * 
+	 * @see {@link https://geminiprotocol.net/docs/protocol-specification.gmi#status-10}
 	*/
 	requireInput(sensitive = false) {
 		this.#socket.data.sent = true;
@@ -67,6 +68,8 @@ export class geminiResponse {
 
 	/**
 	 * Sets the status code of the response
+	 * 
+	 * @see {@link https://geminiprotocol.net/docs/protocol-specification.gmi#status-codes}
 	*/
 	status(code: geminiStatus) {
 		const lowerLimit = 10;
@@ -77,11 +80,21 @@ export class geminiResponse {
 		return this;
 	}
 
+	/**
+	 * Sets the type of the data being sent to the client
+	 * 
+	 * @see {@link https://geminiprotocol.net/docs/protocol-specification.gmi#success}
+	 */
 	type(MIMEType: string) {
 		this.#type = MIMEType;
 		return this;
 	}
 
+	/**
+	 * Tells the client to change request endpoint to a new capsule or path
+	 * 
+	 * @see {@link https://geminiprotocol.net/docs/protocol-specification.gmi#status-30}
+	 */
 	async redirect(uri: string)  {
 		if (!(30 <= this.#status && this.#status < 40))
 			this.#status = 30;
@@ -90,6 +103,14 @@ export class geminiResponse {
 		this.#socket.close();
 	}
 
+	/**
+	 * If the status is a SUCCESS (2x): Sets the body of the response,
+	 * else: sets the error message,
+	 * 
+	 * Then it sends the response to the client.
+	 * 
+	 * @see {@link geminiResponse.sendFile}
+	 */
 	async send(data: string | Buffer) {
 		if (this.#req.sent)
 			return;
@@ -103,7 +124,12 @@ export class geminiResponse {
 		this.#socket.close();
 	}
 
-	async sendFile(filename: string, errCallback?: (err: Error) => {}) {
+	/**
+	 * Sets 
+	 * 
+	 * @see {@link geminiResponse.send}
+	 */
+	async sendFile(filename: string, errCallback?: (err: Error) => any) {
 		if (!(20 <= this.#status && this.#status < 30))
 			throw new Error("Cannot send file when status of response is not 20-29.");
 		try {		
