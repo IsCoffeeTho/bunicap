@@ -8,9 +8,7 @@ const endpoint = `gemini://${mockhost}:${mockport}`;
 
 var dynamicCounter = 0;
 
-const middleware = new bunicap({
-	tls: {}
-});
+const middleware = new bunicap({});
 
 const mockserver = new bunicap({
 	tls: {
