@@ -5,11 +5,12 @@ export enum geminiState {
 }
 
 export interface geminiRequest {
-	hostname: string,
-	endpoint: string,
-	params: {[variable: string]: string}
-	input?: string,
-	state: geminiState,
+	hostname: string;
+	endpoint: string;
+	params: {[variable: string]: string};
+	search?: string;
+	certificate?: import("tls").PeerCertificate;
+	state: geminiState;
 	sent: boolean
 }
 

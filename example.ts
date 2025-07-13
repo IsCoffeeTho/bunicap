@@ -12,6 +12,23 @@ capsule.path("/", (req, res) => {
 	res.sendFile(`${__dirname}/assets/bunicap.gmi`);
 });
 
+
+capsule.path("/input", (req, res) => {
+	if (!req.search)
+		return res.requireInput();
+	
+	res.send(`# Search\n> ${req.search}`);
+	
+});
+
+capsule.path("/cert", (req, res) => {
+	if (!req.certificate)
+		return res.requireCertificate();
+	
+	// more is to be understood about how one could authenticate with these
+	res.send(`Welcome ${req.certificate.subject.CN}`);
+});
+
 capsule.path("/redirect", (req, res) => {
 	res.redirect("/");
 });
@@ -19,7 +36,7 @@ capsule.path("/redirect", (req, res) => {
 capsule.path("*", (req, res) => {
 	res
 		.status(geminiStatus.NotFound) // code 51
-		.send("Capsule Not Found");
+		.send("Not Found");
 });
 
 capsule.listen("0.0.0.0", 1965, (capsule) => {

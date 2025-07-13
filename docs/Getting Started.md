@@ -12,9 +12,9 @@
    - [Response Object](#response-object)
    - [Routing & Handlers](#routing--handlers)
    - [TLS Support](#tls-support)
-6. [Usage Example](#usage-example)
-7. [Configuration & Scripts](#configuration--scripts)
-8. [Creating Your Own Gemini Capsule](#creating-your-own-gemini-capsule)
+5. [Usage Example](#usage-example)
+6. [Configuration & Scripts](#configuration--scripts)
+7. [Creating Your Own Gemini Capsule](#creating-your-own-gemini-capsule)
 
 ## Overview
 
@@ -37,7 +37,6 @@ bun install bunicap
 
 ```ts
 import bunicap from "bunicap";
-import { Bun } from "bun";
 
 const capsule = new bunicap({
   tls: {
@@ -50,12 +49,13 @@ capsule
   .path("/", (req, res) => {
     res.send("# Hello from bunicap!\nWelcome to Gemini.");
   })
-  .listen("0.0.0.0", 1965, (listener) => {
-    console.log("Gemini capsule running on", listener.hostname, listener.port);
+  .listen("0.0.0.0", 1965, (capsule) => {
+    console.log("Gemini capsule running on", capsule.hostname, capsule.port);
   });
 ```
 
 ## Core Concepts
+
 ### Request Object
 
 - **hostname**: target host
@@ -67,22 +67,25 @@ capsule
 
 ### Response Object
 
-| Method                 | Description                                         |
-| ---------------------- | --------------------------------------------------- |
-| **requireCertificate** | Signal client to present a certificate (60)         |
-| **status(code)**       | Set response status (chainable)                     |
-| **type(mime)**         | Override MIME type for `OK` responses               |
-| **redirect(uri)**      | Issue **30x** redirect and terminate                |
-| **send(data)**         | Send body with current status/MIME and close socket |
-| **sendFile(...)**      | Read file, send as body (only for 20–29 statuses)   |
+| Method                   | Description                                            |
+| ------------------------ | ------------------------------------------------------ |
+| **requireCertificate()** | Signal client to present a certificate (60)            |
+| **status(code)**         | Sets the response code                                 |
+| **type(mime)**           | Sets the MIME Type of the response                     |
+| **redirect(uri)**        | Status Code **3x** redirect and terminate              |
+| **send(data)**           | Sends data as either the response message or body data |
+| **sendFile(...)**        | Sends file and informs client of the type of data      |
 
 | Status Code | Meaning                      |
 | ----------- | ---------------------------- |
-| 20          | OK                           |
-| 30,31       | Redirects                    |
-| 40–49       | Client/Server errors         |
+| 10-19       | Input Required               |
+| 20-29       | OK                           |
+| 30-39       | Redirects                    |
+| 40–49       | Temporary errors             |
 | 50–59       | Permanent errors             |
-| 60–62       | Certificate-related statuses |
+| 60–69       | Certificate-related statuses |
+
+See [Gemini Status Codes](https://geminiprotocol.net/docs/protocol-specification.gmi#status-codes) for more information
 
 ### Routing & Handlers
 
@@ -90,11 +93,11 @@ capsule
   Register a handler for:
 
   - **Static** paths (`"/about"`)
-  - **Parametric** paths (`"/user/:id"`) → populates `req.params.id`
+  - **Parametric** paths (`"/user/:id"`) → provides `req.params.id`
   - **Wildcard** paths (`"/assets/*"`) → prefix matching
 
 - `.use([path, ]capsule)`  
-  Intended for mounting sub-capsules at a base path (stub currently returns `this`) .
+  Intended for mounting sub-capsules at a base path.
 
 - `.listen(address, port[, callback])`
   invokes a private `trickleRequest` pipeline:
@@ -148,10 +151,11 @@ In **package.json**:
    import { Bun } from "bun";
 
    const app = new bunicap({
-     tls: { // or omit if running behind a reverse proxy
+     tls: {
+       // or omit if running behind a reverse proxy
        key: Bun.file("localhost.key"),
-       cert: Bun.file("localhost.crt")
-     }
+       cert: Bun.file("localhost.crt"),
+     },
    });
    ```
 
