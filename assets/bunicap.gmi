@@ -1,31 +1,32 @@
 # Bunicap
 
-Bunicap is a bun module that allows the easy development of gemini capsules
+=> https://github.com/IsCoffeeTho/bunicap git
+=> https://www.npmjs.com/package/bunicap npm
+=> https://github.com/IsCoffeeTho/bunicap/wiki wiki
+
+Bunicap  is a bun module that allows the easy development of gemini capsules
 
 => gemini://geminiprotocol.net/docs/protocol-specification.gmi Gemini Protocol
 => gemini://geminiprotocol.net/docs/gemtext-specification.gmi GemText Specification
 
-=> https://github.com/IsCoffeeTho/bunicap Source: Github
-=> https://github.com/IsCoffeeTho/bunicap/wiki Docs: Github
-
-# Installation
-```sh
+## Installation
+```bash
 bun install bunicap
 ```
 
-# Usage
-
-To get a minimal instance started:
-
+## Usage
+### To get a minimal instance started
 In a shell:
-```sh
+```bash
+bun install bunicap
+
 bun run encrypt
 # This will make the localhost certificates you will need
 ```
 
 And in a file:
 
-```ts
+```Typescript
 // example.ts
 import bunicap from "bunicap";
 
@@ -40,16 +41,13 @@ capsule.path("/", (req, res) => {
 	].join("\n"));
 });
 
+capsule.path("*", (req, res) => {
+	res.status(geminiStatus.).send("Capsule Not Found");
+});
+
 capsule.listen("::", 1965, (cap) => {
 	console.log(cap.hostname, cap.port);
 });
 ```
 
-Then in your favourite gemini browser:
-
-```
-gemini://localhost/
-```
-
-# MyCapsule
-Hello World
+=> gemini://localhost/ gemini://localhost/

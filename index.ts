@@ -1,11 +1,6 @@
-import type { BunFile } from "bun";
+import type { BunFile, TLSOptions } from "bun";
 import { geminiState, type geminiRequest, makeRequest } from "./src/request";
 import { geminiResponse, geminiStatus } from "./src/response";
-
-type TLSOptions = {
-	key: BunFile,
-	cert: BunFile
-};
 
 export type bunicapOptions = {
 	/** 
@@ -17,7 +12,7 @@ export type bunicapOptions = {
 type handlerFn = (req: geminiRequest, res: geminiResponse, next: () => any) => any;
 
 type handlerDescriptor = {
-	path : string,
+	path: string,
 	handler: handlerFn | bunicap;
 }
 
@@ -26,9 +21,9 @@ const geminiPathPatternLike = /^(([a-zA-Z0-9]|[\/+-_.]|\%[0-9a-fA-F][0-9a-fA-F])
 
 export default class bunicap {
 	#tls?: TLSOptions;
-	
+
 	#routes: handlerDescriptor[] = [];
-	
+
 	constructor(opt: bunicapOptions) {
 		this.#tls = opt.tls;
 	}
@@ -53,7 +48,7 @@ export default class bunicap {
 		});
 		return this;
 	}
-	
+
 	#getRoutes(path: string) {
 		return this.#routes.filter((route) => {
 			if (route.path.at(-1) == '*')
@@ -75,7 +70,7 @@ export default class bunicap {
 			return (route.path == path);
 		});
 	}
-	
+
 	async trickleRequest(req: geminiRequest, res: geminiResponse, next: Function) {
 		var continueAfterCatch = false;
 		var caughtOnce = false;
@@ -102,7 +97,7 @@ export default class bunicap {
 				await route.handler(req, res, nextFn);
 			} else {
 				var savedPath = req.endpoint;
-				req.endpoint = req.endpoint.split('/').slice(1,route.path.split('/').length-1).join("/");
+				req.endpoint = req.endpoint.split('/').slice(1, route.path.split('/').length - 1).join("/");
 				if (!req.endpoint.startsWith('/'))
 					req.endpoint = '/' + req.endpoint;
 				if (await route.handler.trickleRequest(req, res, nextFn))
@@ -121,6 +116,12 @@ export default class bunicap {
 
 	listen(address: string, port: number, callback?: (capsule: Bun.TCPSocketListener<geminiRequest>) => any) {
 		var _this = this;
+		
+		if (this.#tls) {
+			this.#tls.requestCert = true;
+			this.#tls.rejectUnauthorized = false;
+		}
+		
 		var s = Bun.listen<geminiRequest>({
 			hostname: address,
 			port,
@@ -130,6 +131,7 @@ export default class bunicap {
 					if (!socket.data)
 						socket.data = makeRequest();
 					if (socket.data.state == geminiState.BEGIN) {
+						socket.data.state = geminiState.PROCESSING;
 						try {
 							var req = data.toString();
 
@@ -148,21 +150,31 @@ export default class bunicap {
 							var uri = new URL(req);
 							if (uri.protocol != "gemini:")
 								throw new Error("Bad Protocol");
-							
 							var request = socket.data;
+							
+							var clientCert = socket.getPeerCertificate();
+							if (clientCert != null)
+								request.certificate = clientCert;
+							
 							request.hostname = uri.hostname;
 							request.endpoint = uri.pathname;
-							request.input = uri.search;
+							if (uri.search)
+								request.search = uri.search.slice(1);
 							const response = new geminiResponse(socket, request);
-							
-							if (!(await _this.trickleRequest(socket.data, response, () => {}))) {
-								response.status(geminiStatus.NotFound).send("Capsule Path Not Found");
+
+							if (!(await _this.trickleRequest(socket.data, response, () => { }))) {
+								response.status(geminiStatus.Failure).send("Failed to Respond");
 							}
 						} catch (err: any) {
 							console.log(err.message);
 							socket.write(`40 ${err.message}\r\n`);
+							socket.data.state = geminiState.CLOSED;
 							socket.close();
 						}
+					} else {
+						socket.write(`40 Unexpected Data\r\n`);
+						socket.data.state = geminiState.CLOSED;
+						socket.close();
 					}
 
 				}

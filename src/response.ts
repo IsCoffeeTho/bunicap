@@ -1,5 +1,5 @@
 import type { Socket } from "bun";
-import type { geminiRequest } from "./request";
+import { geminiState, type geminiRequest } from "./request";
 import { MIMETypeFromExtension } from "./MIMETypes";
 
 export enum geminiStatus {
@@ -35,22 +35,34 @@ export class geminiResponse {
 
 	#type: string = "text/gemini";
 
-	#sent: boolean = false;
-	get sent() { return this.#sent }
-
 	constructor(socket: Socket<geminiRequest>, req: geminiRequest) {
 		this.#socket = socket;
 		this.#req = req;
 	}
 
 	/**
-	 * Tells the client that a certificate is required to continue
+	 * Tells the client to require a certificate in the next request
 	 * 
 	 * [Gemini Protocol standard Status 60](https://geminiprotocol.net/docs/protocol-specification.gmi#status-60)
 	*/
 	requireCertificate() {
-		this.#socket.write(`60 \r\n`);
-		/** @TODO Implement certificate requests */
+		this.#socket.data.sent = true;
+		this.#socket.data.state = geminiState.CLOSED;
+		this.#socket.write(`60 Certificate Required\r\n`);
+		this.#socket.close();
+	}
+	
+	/**
+	 * Tells the client to ask the user for an input
+	 * 
+	 * if true is provided in the arguments, it asks the user for a password
+	 * or a hidden text input for sensitive data
+	*/
+	requireInput(sensitive = false) {
+		this.#socket.data.sent = true;
+		this.#socket.data.state = geminiState.CLOSED;
+		this.#socket.write(`${sensitive ? 11 : 10} Input Required\r\n`);
+		this.#socket.close();
 	}
 
 	/**
@@ -66,12 +78,11 @@ export class geminiResponse {
 	}
 
 	type(MIMEType: string) {
-
 		this.#type = MIMEType;
 		return this;
 	}
 
-	async redirect(uri: string) {
+	async redirect(uri: string)  {
 		if (!(30 <= this.#status && this.#status < 40))
 			this.#status = 30;
 		this.#req.sent = true;
@@ -83,20 +94,19 @@ export class geminiResponse {
 		if (this.#req.sent)
 			return;
 		this.#req.sent = true;
+		this.#req.state = geminiState.CLOSED;
 		if (20 <= this.#status && this.#status < 30) {
 			this.#socket.write(`${this.#status} ${this.#type}\r\n`);
 			this.#socket.write(data);
-		} else {
-			this.#socket.write(`${this.#status} \r\n`);
-		}
+		} else
+			this.#socket.write(`${this.#status} ${typeof data == "string" ? data : data.toString()}\r\n`);
 		this.#socket.close();
 	}
 
 	async sendFile(filename: string, errCallback?: (err: Error) => {}) {
 		if (!(20 <= this.#status && this.#status < 30))
 			throw new Error("Cannot send file when status of response is not 20-29.");
-
-		try {
+		try {		
 			var file = Bun.file(filename);
 
 			if (!(await file.exists()))
@@ -104,6 +114,7 @@ export class geminiResponse {
 			this.#type = MIMETypeFromExtension(filename);
 
 			this.#req.sent = true;
+			this.#req.state = geminiState.CLOSED;
 			this.#socket.write(`${this.#status} ${this.#type}\r\n${await file.text()}`);
 			this.#socket.close();
 			
